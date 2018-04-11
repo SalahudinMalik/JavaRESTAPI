@@ -1,0 +1,306 @@
+<filter>
+  <filter-name>CorsFilter</filter-name> 
+  <filter-class>org.apache.catalina.filters.CorsFilter</filter-class> 
+ <init-param>
+  <param-name>cors.allowed.origins</param-name> 
+  <param-value>*</param-value> 
+  </init-param>
+ <init-param>
+  <param-name>cors.allowed.methods</param-name> 
+  <param-value>GET,POST,PUT,DELETE,HEAD,OPTIONS</param-value> 
+  </init-param>
+ <init-param>
+  <param-name>cors.allowed.headers</param-name> 
+  <param-value>Content-Type,X-Requested-With,Accept,Authorization,Origin,Access-Control-Request-Method,Access-Control-Request-Headers</param-value> 
+  </init-param>
+ <init-param>
+  <param-name>cors.exposed.headers</param-name> 
+  <param-value>Access-Control-Allow-Origin,Access-Control-Allow-Credentials</param-value> 
+  </init-param>
+  </filter>
+ <filter-mapping>
+  <filter-name>CorsFilter</filter-name> 
+  <url-pattern>/*</url-pattern> 
+  </filter-mapping>
+
+
+
+
+
+this.service.saveData('evaluation/save','1',this.ObjEval)
+    .subscribe(
+      data1 => {
+        let val = data1.substring(0,5);
+        if(val ==  'Error')
+        {
+          this.showAlert('Error',data1);
+        }
+        else{
+          this.showToast('success','Success','Data Updated');
+          this.validateButtons();
+        }
+      }
+    );
+
+saveData(url:string,mode:string,data:any): Observable<any> {
+    const usrid : String= localStorage.getItem('usrid');
+    this.fullurl = this.golbal.weburl + url;
+    let headers = new Headers({'Content-Type': 'application/json'});
+    this.data = JSON.stringify({mode,usrid,data});
+    this.res = this.http.post(`${this.fullurl}/`,this.data, new RequestOptions({headers}))
+    .map((result: Response) => result.json())
+    .catch(this.getError);
+    return this.res;
+  }
+
+
+
+
+@Path("/save")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	// Add new record in DB
+	public String fn_AddRecord(String aData) {
+
+		Connection conn = null;
+		String strSQLError = "";
+		String strRemarks = "";
+		String lsCode = "";
+		pmLogBookVO aoInputVO = new pmLogBookVO();
+		String mode = "";
+		String lsWhere = "";
+		String userID = "";
+		Gson g = new Gson();
+		JSONObject aObject;
+		JSONObject dataObj = null;
+
+		try {
+			aObject = new JSONObject(aData);
+			mode = aObject.getString("mode");
+			userID = aObject.getString("usrid");
+			dataObj = aObject.getJSONObject("data");
+			aoInputVO.setLb_id(dataObj.getString("LB_ID".toLowerCase()));
+			aoInputVO.setLb_date(dataObj.getString("LB_DATE".toLowerCase()));
+			aoInputVO.setLb_tostaff(dataObj.getString("LB_TOSTAFF".toLowerCase()));
+			aoInputVO.setLb_tostaff_desc(dataObj.getString("LB_TOSTAFF_DESC".toLowerCase()));
+			aoInputVO.setLb_visitpurpose(dataObj.getString("LB_VISITPURPOSE".toLowerCase()));
+			aoInputVO.setLb_visitpurpose_desc(dataObj.getString("LB_VISITPURPOSE_DESC".toLowerCase()));
+			aoInputVO.setLb_forstaff(dataObj.getString("LB_FORSTAFF".toLowerCase()));
+			aoInputVO.setLb_forstaff_desc(dataObj.getString("LB_FORSTAFF_DESC".toLowerCase()));
+			aoInputVO.setLb_remarks(dataObj.getString("LB_REMARKS".toLowerCase()));
+			aoInputVO.setLb_timein(dataObj.getString("LB_TIMEIN".toLowerCase()));
+			aoInputVO.setLb_timeout(dataObj.getString("LB_TIMEOUT".toLowerCase()));
+			aoInputVO.setLb_verify(dataObj.getString("LB_VERIFY".toLowerCase()));
+			aoInputVO.setLb_visittype(dataObj.getString("LB_VISITTYPE".toLowerCase()));
+			aoInputVO.setLb_createdby(dataObj.getString("LB_CREATEDBY".toLowerCase()));
+			aoInputVO.setLb_createdwhen(dataObj.getString("LB_CREATEDWHEN".toLowerCase()));
+			aoInputVO.setLb_modifiedby(dataObj.getString("LB_MODIFIEDBY".toLowerCase()));
+			aoInputVO.setLb_modifiedwhen(dataObj.getString("LB_MODIFIEDWHEN".toLowerCase()));
+
+		} catch (JSONException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		try {
+			conn = manager.get();
+			conn.setAutoCommit(false);
+			if (conn == null) {
+				throw new shmServletException(2);
+			}
+
+			if (mode.equals("1")) {
+				String max = shmUtil.getFieldValue(conn, "MAX(LB_ID)", "PM_LOGBOOK", null, null);
+				if(max.equals("") || max == null)
+				{
+					max = "0";
+				}
+				int a = Integer.parseInt(max) + 1;
+				String lb_id = a + "";
+				String[] strFields = { "LB_ID", "LB_DATE", "LB_TOSTAFF",
+						"LB_VISITPURPOSE", "LB_FORSTAFF", "LB_REMARKS",
+						"LB_TIMEIN", "LB_TIMEOUT", "LB_VERIFY", "LB_VISITTYPE", "LB_CREATEDBY",
+						"LB_CREATEDWHEN" };
+
+				String[] strFieldValues = { lb_id,
+						aoInputVO.getLb_date(), aoInputVO.getLb_tostaff(),
+						aoInputVO.getLb_visitpurpose(),
+						aoInputVO.getLb_forstaff(), aoInputVO.getLb_remarks(),
+						aoInputVO.getLb_timein(), aoInputVO.getLb_timeout(),
+						"0", aoInputVO.getLb_visittype(), userID,
+						"SYSDATE" };
+
+				strSQLError = shmUtil.updateDatabase(conn, "INSERT",
+						"PM_LOGBOOK", strFields, strFieldValues);
+
+				if (strSQLError.equals("")) {
+					strRemarks = "Added new record";
+				}
+			} else if (mode.equals("2")) {
+				lsWhere = "LB_ID = '" + aoInputVO.getLb_id() + "'";
+				String[] strFields = { "LB_DATE", "LB_TOSTAFF",
+						"LB_VISITPURPOSE", "LB_FORSTAFF", "LB_REMARKS",
+						 "LB_TIMEOUT", "LB_VERIFY", "LB_VISITTYPE",
+						"LB_MODIFIEDBY", "LB_MODIFIEDWHEN" };
+
+				String[] strFieldValues = { aoInputVO.getLb_date(),
+						aoInputVO.getLb_tostaff(),
+						aoInputVO.getLb_visitpurpose(),
+						aoInputVO.getLb_forstaff(), aoInputVO.getLb_remarks(),
+						 aoInputVO.getLb_timeout(),
+						aoInputVO.getLb_verify(), aoInputVO.getLb_visittype(), userID,
+						"SYSDATE" };
+
+				strSQLError = shmUtil.updateDatabase(conn, "UPDATE",
+						"PM_LOGBOOK", strFields, strFieldValues, lsWhere);
+
+				if (strSQLError.equals("")) {
+					strRemarks = "Updated record";
+				}
+			}
+			else if (mode.equals("3")) {
+				lsWhere = "LB_ID = '" + aoInputVO.getLb_id() + "'";
+				String[] strFields = { "LB_DATE", "LB_TOSTAFF",
+						"LB_VISITPURPOSE", "LB_FORSTAFF", "LB_REMARKS", "LB_VERIFY", "LB_VISITTYPE",
+						"LB_MODIFIEDBY", "LB_MODIFIEDWHEN" };
+
+				String[] strFieldValues = { aoInputVO.getLb_date(),
+						aoInputVO.getLb_tostaff(),
+						aoInputVO.getLb_visitpurpose(),
+						aoInputVO.getLb_forstaff(), aoInputVO.getLb_remarks(),
+						aoInputVO.getLb_verify(), aoInputVO.getLb_visittype(), userID,
+						"SYSDATE" };
+
+				strSQLError = shmUtil.updateDatabase(conn, "UPDATE",
+						"PM_LOGBOOK", strFields, strFieldValues, lsWhere);
+
+				if (strSQLError.equals("")) {
+					strRemarks = "Updated record";
+				}
+			}
+
+		} catch (shmServletException e) {
+		} catch (SQLException exp) {
+		}
+
+		try {
+
+			if (strSQLError.equals("")) {
+				conn.commit();
+				strSQLError = strRemarks;
+			} else
+				conn.rollback();
+			conn.setAutoCommit(true);
+		}
+
+		catch (SQLException e) {
+			strSQLError = "Error " + e.toString();
+		} finally {
+			manager.free(conn);
+		}
+
+		return g.toJson(strSQLError);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+getLogin(loginname:string,pwd:string):Observable<any>{
+  this.fullurl = this.golbal.weburl + 'auth/login';
+  this.res = this.http.get(`${this.fullurl}/${loginname}/${pwd}`)
+  .map((result: Response) => result.json())
+  .catch(this.getError);
+  return this.res;
+}
+
+@Path("/login/{loginname}/{pwd}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public String fn_Validate(@PathParam("loginname") String aLoginName,
+			@PathParam("pwd") String aPWD) {
+		String result = "";
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {
+			conn = manager.get();
+			result = fn_ValidateCredentials(aLoginName, aPWD);
+			result = result + "~" + shmUtil.getFieldValue(conn, "PAR_EVALFREQUENCY", "PM_PARAMETER",
+					"PAR_ID", "1") + "~" + shmUtil.getFieldValue(conn, "count(YR_ID)",
+							"PM_YEAR", "YR_STATUS = '0'", null) + "~" + shmUtil.getFieldValue(
+									conn, 
+									"ST_DEP_CODE",
+									"PM_STAFF", "ST_CODE = '"+ aLoginName +"'", 
+									null);
+		} catch (shmServletException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			result = "Error:" + e.getErrMessage().toString();
+		}
+		finally {
+			try {
+				stmt.close();
+				rs.close();
+			} catch (Exception exp) {
+			}
+			manager.free(conn);
+		}
+		Gson g = new Gson();
+		return g.toJson(result);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+[(ngModel)]="ObjEval.eval_designationdesc"
+
+
+
+
+
+
+
+
+
+
+
+
+
+export class Globals {
+  hostname: string = window.location.hostname;
+  port: string = window.location.port;
+  weburl: string = 'http://' + this.hostname  + ':8080/PMC/PM/';
+  // weburl: string = 'http://' + this.hostname  + ':'+ this.port + '/OrderPro/OrderPro/';
+
+  fn_parseFloatIgnoreCommas(varString:String) :any {
+    let stringWithoutComma = varString.replace(',', '');
+    return parseFloat(stringWithoutComma);
+  }
+}
+
+
+
+
+
+
+
+
+
